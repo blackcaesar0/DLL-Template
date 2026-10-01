@@ -1,0 +1,39 @@
+# Build output
+build/
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+Win32/
+
+# Visual Studio local state
+.vs/
+*.vcxproj.user
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+*.aps
+*.ncb
+
+# Build artifacts
+*.dll
+*.obj
+*.exp
+*.lib
+*.pdb
+*.ilk
+*.idb
+*.pch
+*.tlog
+*.log
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+compile_commands.json

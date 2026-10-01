@@ -1,0 +1,90 @@
+name: build
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  msvc:
+    name: MSVC ${{ matrix.platform }} ${{ matrix.configuration }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [Win32, x64]
+        configuration: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build
+        run: >-
+          msbuild DLL-Template\Dll-Template.vcxproj
+          /p:Configuration=${{ matrix.configuration }}
+          /p:Platform=${{ matrix.platform }}
+          /verbosity:minimal
+
+      - name: Check the DLL was produced
+        shell: pwsh
+        run: |
+          $dir = if ('${{ matrix.platform }}' -eq 'Win32') { '${{ matrix.configuration }}' }
+                 else { '${{ matrix.platform }}\${{ matrix.configuration }}' }
+          $dll = Join-Path "DLL-Template\$dir" 'Dll-Template.dll'
+          if (-not (Test-Path $dll)) {
+            Write-Error "expected $dll"
+            Get-ChildItem -Recurse -Filter *.dll DLL-Template | ForEach-Object FullName
+            exit 1
+          }
+          Write-Host "built $dll"
+
+  cmake-msvc:
+    name: CMake MSVC ${{ matrix.arch }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [Win32, x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -A ${{ matrix.arch }}
+
+      - name: Build
+        run: cmake --build build --config Release
+
+  mingw:
+    name: MinGW-w64 cross-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64
+
+      - name: Build via Makefile
+        run: make
+
+      - name: Build via CMake toolchain files
+        run: |
+          cmake -B build/cmake-x64 -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-x86_64.cmake -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/cmake-x64
+          cmake -B build/cmake-x86 -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-i686.cmake -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/cmake-x86
+
+      - name: Verify architecture and exports
+        run: |
+          set -eux
+          file build/x64/Dll-Template.dll | grep -q 'x86-64'
+          file build/x86/Dll-Template.dll | grep -q '80386'
+          # test() must be exported undecorated on both architectures,
+          # otherwise GetProcAddress(h, "test") breaks on x86.
+          for arch in x64 x86; do
+            x86_64-w64-mingw32-objdump -p "build/$arch/Dll-Template.dll" \
+              | grep -A2 'Ordinal/Name Pointer' | grep -qw test
+          done

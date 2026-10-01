@@ -1,10 +1,17 @@
 name: build
 
 on:
+  # Only the default branch builds on push. Any other branch is built through
+  # its pull request, so listing '**' here would build every PR branch twice.
   push:
-    branches: ['**']
+    branches: [master]
   pull_request:
   workflow_dispatch:
+
+# A new push supersedes whatever is still running for the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   msvc:

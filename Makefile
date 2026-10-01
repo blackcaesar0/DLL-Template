@@ -27,11 +27,11 @@ x86: $(OUT)/x86/Dll-Template.dll
 
 $(OUT)/x64/Dll-Template.dll: $(SRC)
 	@mkdir -p $(@D)
-	$(CXX_X64) $(CXXFLAGS) $(LDFLAGS) -o $@ $<
+	$(CXX_X64) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 $(OUT)/x86/Dll-Template.dll: $(SRC)
 	@mkdir -p $(@D)
-	$(CXX_X86) $(CXXFLAGS) $(LDFLAGS) -o $@ $<
+	$(CXX_X86) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 
 clean:
 	rm -rf $(OUT)
